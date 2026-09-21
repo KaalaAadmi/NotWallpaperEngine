@@ -34,8 +34,11 @@ jobs:
         run: |
           swift build -c release
           BIN=$(swift build -c release --show-bin-path)/mac-helper
-          cp "$BIN" Sources/mac-helper-bin
-          echo "✅ mac-helper: $(ls -lh Sources/mac-helper-bin)"
+          # .build/release is a symlink swift can't recreate on this runner; remove and re-create it
+          rm -rf .build/release
+          mkdir -p .build/release
+          cp "$BIN" .build/release/mac-helper
+          echo "✅ mac-helper: $(ls -lh .build/release/mac-helper)"
         working-directory: native/mac-helper
 
       - name: Build NotWPESaver.saver
