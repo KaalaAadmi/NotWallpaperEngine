@@ -23,7 +23,7 @@ mac:
   # All native binaries bundled as extra resources so main/ can find them at
   # process.resourcesPath at runtime.
   extraResources:
-    - from: native/mac-helper/.build/release/mac-helper
+    - from: native/mac-helper/Sources/mac-helper-bin
       to: mac-helper
     - from: native/mac-saver/build/NotWPESaver.saver
       to: NotWPESaver.saver

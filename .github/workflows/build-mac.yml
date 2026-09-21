@@ -35,8 +35,9 @@ jobs:
       - name: Build Swift mac-helper
         run: |
           swift build -c release
-          cp "$(swift build -c release --show-bin-path)/mac-helper" .build/release/mac-helper
-          echo "✅ mac-helper: $(ls -lh .build/release/mac-helper)"
+          BIN=$(swift build -c release --show-bin-path)/mac-helper
+          cp "$BIN" Sources/mac-helper-bin
+          echo "✅ mac-helper: $(ls -lh Sources/mac-helper-bin)"
         working-directory: native/mac-helper
 
       - name: Build NotWPESaver.saver
