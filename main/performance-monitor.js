@@ -21,8 +21,6 @@ let user32 = null
 
 let onPause = () => {}
 let onResume = () => {}
-let onLock = () => {}
-let onUnlock = () => {}
 let getSettings = () => ({})
 
 let isOnBattery = false
@@ -85,13 +83,11 @@ function initBatteryMonitoring () {
 function initLockMonitoring () {
   powerMonitor.on('lock-screen', () => {
     isLocked = true
-    onLock()
     scheduleCheck()
   })
 
   powerMonitor.on('unlock-screen', () => {
     isLocked = false
-    onUnlock()
     scheduleCheck()
   })
 }
@@ -180,8 +176,6 @@ function startFullscreenPollLinux () {
 function start (options) {
   onPause    = options.onPause    || (() => {})
   onResume   = options.onResume   || (() => {})
-  onLock     = options.onLock     || (() => {})
-  onUnlock   = options.onUnlock   || (() => {})
   getSettings = options.getSettings || (() => ({}))
 
   initBatteryMonitoring()

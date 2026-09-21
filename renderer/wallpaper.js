@@ -12,8 +12,8 @@ const videoPath = params.get('videoPath')
 const fitMode   = params.get('fitMode') || 'cover'
 const speed     = parseFloat(params.get('speed') || '1')
 
-// Start muted by default; the mute/unmute hotkey sends set-mute to toggle
-video.muted  = true
+// Always muted — no audio (PRD §3: No audio).
+video.muted = true
 
 if (videoPath) {
   video.style.objectFit = fitMode
@@ -38,14 +38,6 @@ if (typeof window.nweWallpaper !== 'undefined') {
       case 'resume':
         delete video.dataset.manualPause
         video.play()
-        break
-      case 'set-mute':
-        video.muted = !!cmd.muted
-        // Restore volume when unmuting so the browser doesn't keep it at 0
-        if (!cmd.muted && video.volume === 0) video.volume = 1
-        break
-      case 'set-volume':
-        // Volume control not supported — no-op
         break
       case 'set-fit':
         video.style.objectFit = cmd.fitMode

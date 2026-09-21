@@ -66,8 +66,9 @@ function applySettingsToUI (s) {
   document.getElementById('pause-on-lock').checked = s.performance.pauseOnLock
   document.getElementById('pause-on-fullscreen').checked = s.performance.pauseOnFullscreen
 
-  // Monitors — mirrorToAll defaults true
-  document.getElementById('mirror-all').checked = s.wallpaper.mirrorToAll !== false
+  // Monitors — mirror when perDisplay is empty
+  const hasPerDisplay = s.wallpaper.perDisplay && Object.keys(s.wallpaper.perDisplay).length > 0
+  document.getElementById('mirror-all').checked = !hasPerDisplay
 
   // General
   document.getElementById('launch-at-login').checked = s.general.launchAtLogin
@@ -246,6 +247,31 @@ function setupWallpaperTab () {
     settings.wallpaper = { ...settings.wallpaper, ...patch }
     showToast('Wallpaper applied!')
   })
+
+  // Mute / unmute toggle
+  const muteBtn = document.getElementById('mute-toggle-btn')
+  let _muted = false  // wallpaper starts unmuted
+
+  function updateMuteBtn () {
+    muteBtn.textContent = _muted ? '🔊 Unmute' : '🔇 Mute'
+  }
+
+  // Sync initial state from main process
+  nwe.getWallpaperState().then(st => {
+    _muted = !!st.isMuted
+    updateMuteBtn()
+  })
+
+  muteBtn.addEventListener('click', async () => {
+    if (_muted) {
+      await nwe.unmuteWallpaper()
+      _muted = false
+    } else {
+      await nwe.muteWallpaper()
+      _muted = true
+    }
+    updateMuteBtn()
+  })
 }
 
 // ── Screensaver Tab ───────────────────────────────────────────────────────────
@@ -338,8 +364,9 @@ function setupMonitorsTab () {
   _perDisplayDraft = Object.assign({}, settings.wallpaper.perDisplay || {})
 
   const mirrorToggle = document.getElementById('mirror-all')
-  // Default: mirror=true (stored setting wins)
-  mirrorToggle.checked = settings.wallpaper.mirrorToAll !== false
+  // Mirror when there are no per-display overrides
+  const hasPerDisplay = settings.wallpaper.perDisplay && Object.keys(settings.wallpaper.perDisplay).length > 0
+  mirrorToggle.checked = !hasPerDisplay
 
   // Show/hide per-display rows based on toggle state
   function syncDisplayListVisibility () {
@@ -357,13 +384,10 @@ function setupMonitorsTab () {
 
   document.getElementById('apply-monitors-btn').addEventListener('click', async () => {
     const mirrorToAll = mirrorToggle.checked
-    const patch = { mirrorToAll }
-    if (!mirrorToAll) {
-      patch.perDisplay = Object.assign({}, _perDisplayDraft)
-    }
+    // When mirroring, clear per-display overrides; otherwise send the draft map
+    const patch = { perDisplay: mirrorToAll ? {} : Object.assign({}, _perDisplayDraft) }
     await nwe.saveWallpaperSettings(patch)
-    settings.wallpaper.mirrorToAll = mirrorToAll
-    if (!mirrorToAll) settings.wallpaper.perDisplay = patch.perDisplay
+    settings.wallpaper.perDisplay = patch.perDisplay
     showToast('Monitor settings saved!')
   })
 
@@ -437,7 +461,7 @@ function renderDisplayList () {
 
 // ── Hotkeys Tab ───────────────────────────────────────────────────────────────
 
-const HOTKEY_ACTIONS = ['pauseResume', 'muteUnmute', 'nextWallpaper', 'lockScreen']
+const HOTKEY_ACTIONS = ['pauseResume', 'nextWallpaper', 'lockScreen']
 
 // ── Key recorder ─────────────────────────────────────────────────────────────
 // Converts a browser KeyboardEvent into an Electron accelerator string.

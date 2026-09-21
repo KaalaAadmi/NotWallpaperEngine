@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('nwe', {
   pickVideo: (purpose) => ipcRenderer.invoke('pick-video', purpose),
   pauseWallpaper: () => ipcRenderer.invoke('pause-wallpaper'),
   resumeWallpaper: () => ipcRenderer.invoke('resume-wallpaper'),
+  muteWallpaper: () => ipcRenderer.invoke('mute-wallpaper'),
+  unmuteWallpaper: () => ipcRenderer.invoke('unmute-wallpaper'),
   getWallpaperState: () => ipcRenderer.invoke('get-wallpaper-state'),
   onSettingsUpdated: (cb) => ipcRenderer.on('settings-updated', (_event, data) => cb(data)),
   // macOS lock screen via aerial slot replacement

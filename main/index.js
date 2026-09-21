@@ -48,8 +48,7 @@ switch (process.platform) {
 let tray = null
 let settingsWindow = null
 let isPaused = false
-let isMuted = false          // runtime mute state — toggled by hotkey, not persisted
-let muteBeforeLock = null    // saved mute state so we can restore it on unlock
+let isMuted = false
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
@@ -95,10 +94,6 @@ app.whenReady().then(async () => {
   performanceMonitor.start({
     onPause:  () => pauseWallpaper(),
     onResume: () => resumeWallpaper(),
-    // On lock: force-mute and remember the pre-lock mute state.
-    // On unlock: restore whatever the state was before locking.
-    onLock:   () => lockMute(),
-    onUnlock: () => unlockRestoreMute(),
     getSettings: storeModule.getPerformance
   })
 
@@ -109,7 +104,6 @@ app.whenReady().then(async () => {
   // Register global hotkeys
   hotkeys.init({
     pauseResume:   () => { if (isPaused) resumeWallpaper(); else pauseWallpaper() },
-    muteUnmute:    () => toggleMute(),
     nextWallpaper: () => {}, // placeholder for future playlist feature
     // Start screensaver immediately — functionally equivalent to locking the
     // screen since the screensaver requires a password on resume.
@@ -133,6 +127,13 @@ app.whenReady().then(async () => {
     if (wp.videoPath) await startWallpaper(wp.videoPath)
     notifySettingsWindow({ displays: getDisplayList() })
   })
+  // Re-patch Index.plist before every lock so WallpaperAgent picks up our
+  // aerial slot on the second (and every subsequent) lock screen.
+  if (process.platform === 'darwin' && wallpaperExtensionMac) {
+    powerMonitor.on('lock-screen', () => {
+      wallpaperExtensionMac.repatchOnLock()
+    })
+  }
 })
 
 app.on('window-all-closed', (e) => {
@@ -184,11 +185,6 @@ function updateTrayMenu () {
       label: isPaused ? 'Resume Wallpaper' : 'Pause Wallpaper',
       enabled: hasWallpaper,
       click: () => { if (isPaused) resumeWallpaper(); else pauseWallpaper() }
-    },
-    {
-      label: isMuted ? '🔇 Muted  (click to unmute)' : '🔊 Audio on  (click to mute)',
-      enabled: hasWallpaper,
-      click: () => toggleMute()
     },
     { type: 'separator' },
     {
@@ -274,10 +270,7 @@ async function startWallpaper (videoPath) {
   if (!wallpaperModule) return
   const settings = storeModule.getWallpaper()
   const displays = getDisplayList()
-  // Overlay the live runtime mute state so a display reconnect (which calls
-  // startWallpaper again) respawns the helper with the correct --muted flag
-  // instead of always resetting to muted=true.
-  await wallpaperModule.start({ videoPath, settings: { ...settings, muted: isMuted }, displays })
+  await wallpaperModule.start({ videoPath, settings, displays })
   isPaused = false
   updateTrayMenu()
 }
@@ -296,35 +289,16 @@ function resumeWallpaper () {
   updateTrayMenu()
 }
 
-function toggleMute () {
-  isMuted = !isMuted
-  // Broadcast to all wallpaper surfaces (Win/Linux BrowserWindows + macOS Swift helper)
-  broadcastToWallpaperWindows({ type: 'set-mute', muted: isMuted })
-  updateTrayMenu()
+function muteWallpaper () {
+  if (!wallpaperModule?.setMuted) return
+  wallpaperModule.setMuted(true)
+  isMuted = true
 }
 
-function lockMute () {
-  // Save current mute state (only on the first lock event — don't overwrite
-  // if somehow lock fires twice without an intervening unlock)
-  if (muteBeforeLock === null) {
-    muteBeforeLock = isMuted
-  }
-  if (!isMuted) {
-    isMuted = true
-    broadcastToWallpaperWindows({ type: 'set-mute', muted: true })
-    updateTrayMenu()
-  }
-}
-
-function unlockRestoreMute () {
-  if (muteBeforeLock === null) return  // no saved state — nothing to restore
-  const restore = muteBeforeLock
-  muteBeforeLock = null
-  if (isMuted !== restore) {
-    isMuted = restore
-    broadcastToWallpaperWindows({ type: 'set-mute', muted: isMuted })
-    updateTrayMenu()
-  }
+function unmuteWallpaper () {
+  if (!wallpaperModule?.setMuted) return
+  wallpaperModule.setMuted(false)
+  isMuted = false
 }
 
 // Send a command to all open wallpaper BrowserWindows (Win/Linux)
@@ -438,7 +412,17 @@ ipcMain.handle('resume-wallpaper', () => {
   return { isPaused }
 })
 
-ipcMain.handle('get-wallpaper-state', () => ({ isPaused }))
+ipcMain.handle('get-wallpaper-state', () => ({ isPaused, isMuted }))
+
+ipcMain.handle('mute-wallpaper', () => {
+  muteWallpaper()
+  return { isMuted }
+})
+
+ipcMain.handle('unmute-wallpaper', () => {
+  unmuteWallpaper()
+  return { isMuted }
+})
 
 ipcMain.handle('save-hotkeys', (_event, patch) => {
   storeModule.setHotkeys(patch)
@@ -477,7 +461,6 @@ ipcMain.handle('mac-extension-activate', async (_event, videoPath) => {
     const settings = storeModule.getWallpaper()
     const vp = videoPath || settings.videoPath
     await wallpaperExtensionMac.activate(vp)
-    storeModule.setWallpaper({ lockScreenEnabled: true })
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -488,7 +471,6 @@ ipcMain.handle('mac-extension-deactivate', async () => {
   if (!wallpaperExtensionMac) return { ok: false }
   try {
     await wallpaperExtensionMac.deactivate()
-    storeModule.setWallpaper({ lockScreenEnabled: false })
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }

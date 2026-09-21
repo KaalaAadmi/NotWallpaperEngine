@@ -2,7 +2,8 @@
 
 const { contextBridge, ipcRenderer } = require('electron')
 
-// Exposed to wallpaper.html renderer
+// Expose a minimal API to the wallpaper BrowserWindow (Win/Linux).
+// Only exposes the ability to receive commands from the main process.
 contextBridge.exposeInMainWorld('nweWallpaper', {
   onCommand: (cb) => ipcRenderer.on('wallpaper-command', (_event, cmd) => cb(cmd))
 })

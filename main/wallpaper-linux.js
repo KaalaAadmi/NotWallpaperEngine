@@ -36,7 +36,6 @@ function setDesktopTypeViaXprop (xid) {
 // ── Per-display video helper ──────────────────────────────────────────────────
 
 function videoForDisplay (display, settings) {
-  if (settings.mirrorToAll !== false) return settings.videoPath || ''
   const perDisplay = settings.perDisplay || {}
   return perDisplay[String(display.id)] || settings.videoPath || ''
 }

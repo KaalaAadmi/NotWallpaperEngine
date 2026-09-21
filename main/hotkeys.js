@@ -7,7 +7,6 @@
  *
  * Supported actions:
  *   pauseResume    — toggle wallpaper playback
- *   muteUnmute     — toggle wallpaper mute
  *   nextWallpaper  — cycle to next wallpaper (future)
  *   lockScreen     — start screensaver immediately (macOS, §6.4)
  *
@@ -23,7 +22,6 @@ const { globalShortcut, app } = require('electron')
 // Callbacks injected by index.js
 let _actions = {
   pauseResume:   () => {},
-  muteUnmute:    () => {},
   nextWallpaper: () => {},
   lockScreen:    () => {}
 }

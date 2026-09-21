@@ -63,6 +63,15 @@ const INDEX_PLIST_PATH = path.join(
   'com.apple.wallpaper', 'Store', 'Index.plist'
 )
 
+// manifest.tar — WallpaperAgent extracts this tar on every restart, which
+// overwrites aerials/manifest/entries.json with the original copy (including
+// the CDN url-4K-SDR-240FPS field).  We must also patch entries.json INSIDE
+// the tar so the extraction no longer restores the CDN URL.
+const MANIFEST_TAR_PATH = path.join(
+  os.homedir(), 'Library', 'Application Support',
+  'com.apple.wallpaper', 'aerials', 'manifest.tar'
+)
+
 // Cache dir for the converted HEVC .mov, keyed on source-file hash
 const CONVERTED_DIR = path.join(
   os.homedir(), 'Library', 'Application Support',
@@ -244,6 +253,125 @@ function restoreEntriesJson () {
     console.log('[extension-mac] entries.json restored from backup')
   } catch (e) {
     console.warn('[extension-mac] Could not restore entries.json:', e.message)
+  }
+}
+
+// ── manifest.tar patching ─────────────────────────────────────────────────────
+
+/**
+ * Patch entries.json INSIDE manifest.tar so WallpaperAgent's tar-extraction on
+ * every restart does not overwrite our patched entries.json with the original
+ * (which contains the CDN url-4K-SDR-240FPS field that triggers re-download).
+ *
+ * Strategy:
+ *   1. Back up the original tar to manifest.tar.nwpe_orig (once).
+ *   2. Extract entries.json from the tar into a temp file.
+ *   3. Apply the same patch as updateEntriesJson() (remove url-* keys, update
+ *      fileSize + sha256).
+ *   4. Repack the tar: extract everything to a temp dir, replace entries.json,
+ *      then tar cf back in place.
+ *
+ * Uses only `tar` (always on macOS) and Node's built-in fs/crypto — no deps.
+ */
+function patchManifestTar (slotId, slotPath) {
+  if (!fs.existsSync(MANIFEST_TAR_PATH)) {
+    console.warn('[extension-mac] manifest.tar not found — skipping tar patch:', MANIFEST_TAR_PATH)
+    return
+  }
+
+  // Back up the original tar once
+  const backupPath = MANIFEST_TAR_PATH + '.nwpe_orig'
+  if (!fs.existsSync(backupPath)) {
+    fs.copyFileSync(MANIFEST_TAR_PATH, backupPath)
+    console.log('[extension-mac] Backed up manifest.tar to:', backupPath)
+  }
+
+  const tmpDir = path.join(os.tmpdir(), 'nwpe_manifest_patch')
+  try {
+    // Clean and recreate temp dir
+    if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true })
+    fs.mkdirSync(tmpDir, { recursive: true })
+
+    // Extract the entire tar into the temp dir
+    execSync(`tar -xf ${JSON.stringify(MANIFEST_TAR_PATH)} -C ${JSON.stringify(tmpDir)}`, { stdio: 'pipe' })
+
+    const extractedJson = path.join(tmpDir, 'entries.json')
+    if (!fs.existsSync(extractedJson)) {
+      console.warn('[extension-mac] entries.json not found inside manifest.tar after extraction')
+      return
+    }
+
+    // Patch the extracted entries.json
+    let data
+    try {
+      data = JSON.parse(fs.readFileSync(extractedJson, 'utf8'))
+    } catch (e) {
+      console.warn('[extension-mac] Could not parse entries.json from tar:', e.message)
+      return
+    }
+
+    const stat = fs.statSync(slotPath)
+    const fileSize = stat.size
+    const buf = fs.readFileSync(slotPath)
+    const sha256 = crypto.createHash('sha256').update(buf).digest('hex')
+
+    let patched = false
+    function patchEntry (entry) {
+      if (!entry || typeof entry !== 'object') return
+      if (entry.id === slotId || entry.uuid === slotId || entry.assetId === slotId) {
+        if (fileSize) entry.fileSize = fileSize
+        if (sha256)   entry.sha256   = sha256
+        delete entry.invalid
+        delete entry.needsReencode
+        const urlKeys = Object.keys(entry).filter(k =>
+          k.startsWith('url-') || k === 'url' || k === 'downloadURL' || k === 'sourceURL'
+        )
+        for (const k of urlKeys) delete entry[k]
+        patched = true
+      }
+    }
+
+    if (Array.isArray(data)) {
+      data.forEach(patchEntry)
+    } else if (data && typeof data === 'object') {
+      const arrKey = Object.keys(data).find(k => Array.isArray(data[k]))
+      if (arrKey) data[arrKey].forEach(patchEntry)
+    }
+
+    if (!patched) {
+      console.warn('[extension-mac] No matching entry found in tar entries.json for slot:', slotId)
+    }
+
+    fs.writeFileSync(extractedJson, JSON.stringify(data, null, 2), 'utf8')
+
+    // Repack: tar cf into a temp file then rename into place atomically
+    const tmpTar = MANIFEST_TAR_PATH + '.nwpe_tmp'
+    // List all files in tmpDir to repack them preserving relative paths
+    execSync(
+      `tar -cf ${JSON.stringify(tmpTar)} -C ${JSON.stringify(tmpDir)} .`,
+      { stdio: 'pipe' }
+    )
+    fs.renameSync(tmpTar, MANIFEST_TAR_PATH)
+    console.log('[extension-mac] manifest.tar repacked with patched entries.json')
+  } catch (e) {
+    console.warn('[extension-mac] manifest.tar patch failed:', e.message)
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch {}
+  }
+}
+
+/**
+ * Restore manifest.tar from backup.
+ */
+function restoreManifestTar () {
+  const backupPath = MANIFEST_TAR_PATH + '.nwpe_orig'
+  if (!fs.existsSync(backupPath)) return
+  try {
+    fs.copyFileSync(backupPath, MANIFEST_TAR_PATH)
+    fs.unlinkSync(backupPath)
+    console.log('[extension-mac] manifest.tar restored from backup')
+  } catch (e) {
+    console.warn('[extension-mac] Could not restore manifest.tar:', e.message)
   }
 }
 
@@ -510,15 +638,22 @@ async function activate (videoPath) {
   // 5. Update entries.json so WallpaperAgent accepts the new file
   updateEntriesJson(slotId, slotPath)
 
-  // 6. Patch Index.plist Idle entries to use the aerials provider.
+  // 6. Patch entries.json INSIDE manifest.tar.
+  //    WallpaperAgent extracts this tar on every restart and overwrites the
+  //    loose entries.json with the original copy (including CDN url-* keys).
+  //    Without this patch the lock screen reverts to black on every lock after
+  //    the first because WallpaperAgent re-fetches the original aerial.
+  patchManifestTar(slotId, slotPath)
+
+  // 7. Patch Index.plist Idle entries to use the aerials provider.
   //    Without this, WallpaperAgent shows the static Sequoia wallpaper on the
   //    lock screen from the second lock onward (Idle overrides the slot file).
   patchIndexPlistIdle(slotId)
 
-  // 7. Restart WallpaperAgent so lock screen picks up the change
+  // 8. Restart WallpaperAgent so lock screen picks up the change
   reloadWallpaperAgentInternal()
 
-  // 8. Persist state for deactivate/restore
+  // 9. Persist state for deactivate/restore
   saveState({ slotPath, backupPath, hevcPath, videoPath, slotId })
   console.log('[extension-mac] Lock screen activated with:', videoPath)
 }
@@ -528,6 +663,7 @@ async function deactivate () {
   if (!state?.backupPath || !fs.existsSync(state.backupPath)) {
     console.log('[extension-mac] No backup found; nothing to restore.')
     restoreEntriesJson()
+    restoreManifestTar()
     restoreIndexPlist()
     clearState()
     return
@@ -544,8 +680,9 @@ async function deactivate () {
   // Remove backup
   try { fs.unlinkSync(backupPath) } catch { /* ok */ }
 
-  // Restore entries.json and Index.plist from backups
+  // Restore entries.json, manifest.tar, and Index.plist from backups
   restoreEntriesJson()
+  restoreManifestTar()
   restoreIndexPlist()
 
   reloadWallpaperAgentInternal()
@@ -611,6 +748,22 @@ function checkPrerequisites () {
   return { ok: missing.length === 0, missing, diagnostics: diag.join('\n') }
 }
 
+// ── Re-patch on lock ──────────────────────────────────────────────────────────
+
+/**
+ * Called on every lock-screen event.  WallpaperAgent rewrites Index.plist from
+ * its internal DB when it restarts (which it does on every lock), reverting our
+ * Idle-provider patch.  Re-patch here so the second (and every subsequent) lock
+ * shows the video instead of a black screen.
+ */
+function repatchOnLock () {
+  const state = loadState()
+  if (!state?.slotId) return  // extension not active
+  console.log('[extension-mac] lock-screen event — re-patching Index.plist')
+  patchIndexPlistIdle(state.slotId)
+  reloadWallpaperAgentInternal()
+}
+
 // ── Legacy stubs ──────────────────────────────────────────────────────────────
 
 function build    () { console.log('[extension-mac] build() — no-op.') }
@@ -623,6 +776,7 @@ module.exports = {
   install,
   uninstall,
   reloadWallpaperAgent,
+  repatchOnLock,
   activate,
   deactivate,
   isActive,

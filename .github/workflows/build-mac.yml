@@ -34,11 +34,11 @@ jobs:
 
       - name: Build Swift mac-helper
         run: swift build -c release
-        # working-directory: NotWallpaperEngine/native/mac-helper
+        working-directory: native/mac-helper
 
       - name: Verify mac-helper binary
         run: |
-          BIN=NotWallpaperEngine/native/mac-helper/.build/release/mac-helper
+          BIN=native/mac-helper/.build/release/mac-helper
           if [ ! -f "$BIN" ]; then
             echo "❌ mac-helper not found"
             exit 1
@@ -51,7 +51,7 @@ jobs:
 
       - name: Verify NotWPESaver.saver
         run: |
-          SAVER=NotWallpaperEngine/native/mac-saver/build/NotWPESaver.saver
+          SAVER=native/mac-saver/build/NotWPESaver.saver
           if [ ! -d "$SAVER" ]; then
             echo "❌ NotWPESaver.saver not found"
             exit 1
@@ -69,5 +69,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: NotWallpaperEngine-dmg-${{ github.sha }}
-          path: NotWallpaperEngine/build/*.dmg
+          path: build/*.dmg
           # retention-days: 30

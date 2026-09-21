@@ -9,8 +9,6 @@ const schema = {
       videoPath: { type: 'string', default: '' },
       fitMode: { type: 'string', enum: ['cover', 'contain', 'stretch'], default: 'cover' },
       playbackSpeed: { type: 'number', minimum: 0.5, maximum: 2.0, default: 1.0 },
-      lockScreenEnabled: { type: 'boolean', default: false },
-      mirrorToAll: { type: 'boolean', default: true },
       perDisplay: {
         type: 'object',
         additionalProperties: { type: 'string' },
@@ -49,7 +47,6 @@ const schema = {
     type: 'object',
     properties: {
       pauseResume:   { type: 'string', default: '' },
-      muteUnmute:    { type: 'string', default: '' },
       nextWallpaper: { type: 'string', default: '' },
       lockScreen:    { type: 'string', default: '' }
     },
@@ -71,21 +68,17 @@ function getWallpaper () {
     videoPath: s.get('wallpaper.videoPath', ''),
     fitMode: s.get('wallpaper.fitMode', 'cover'),
     playbackSpeed: s.get('wallpaper.playbackSpeed', 1.0),
-    lockScreenEnabled: s.get('wallpaper.lockScreenEnabled', false),
-    mirrorToAll: s.get('wallpaper.mirrorToAll', true),
     perDisplay: s.get('wallpaper.perDisplay', {})
   }
 }
 
 /**
  * Returns the effective video path for a given display.
- * Falls back to the global videoPath when mirrorToAll is true or no override set.
+ * Falls back to the global videoPath when no per-display override is set.
  */
 function getVideoPathForDisplay (displayId) {
   const s = getStore()
   const global = s.get('wallpaper.videoPath', '')
-  const mirror = s.get('wallpaper.mirrorToAll', true)
-  if (mirror) return global
   const perDisplay = s.get('wallpaper.perDisplay', {})
   return perDisplay[String(displayId)] || global
 }
@@ -148,7 +141,6 @@ function getHotkeys () {
   const s = getStore()
   return {
     pauseResume:   s.get('hotkeys.pauseResume', ''),
-    muteUnmute:    s.get('hotkeys.muteUnmute', ''),
     nextWallpaper: s.get('hotkeys.nextWallpaper', ''),
     lockScreen:    s.get('hotkeys.lockScreen', '')
   }

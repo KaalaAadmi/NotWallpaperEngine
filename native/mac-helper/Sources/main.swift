@@ -25,7 +25,6 @@ var convertOutputPath: String? = nil
 var initialVideoPath = ""
 var initialFitMode = "cover"
 var initialSpeed = 1.0
-var initialMuted = true  // default muted; hotkey sends set-mute to toggle
 
 let args = CommandLine.arguments
 var i = 1
@@ -41,10 +40,8 @@ while i < args.count {
         i += 1; if i < args.count { initialFitMode = args[i] }
     case "--speed":
         i += 1; if i < args.count { initialSpeed = Double(args[i]) ?? 1.0 }
-    case "--muted":
-        i += 1; if i < args.count { initialMuted = args[i] == "1" }
-    case "--volume":
-        i += 1  // volume not supported — consume and ignore
+    case "--muted", "--volume":
+        i += 1  // audio always disabled (PRD §3: No audio) — consume and ignore
     default: break
     }
     i += 1
@@ -67,7 +64,6 @@ struct IncomingMessage: Decodable {
     let displayId: Int?      // CGDirectDisplayID for set-display-video
     let fitMode: String?
     let speed: Double?
-    // ignored — audio is always off
     let muted: Bool?
     let volume: Double?
 }
@@ -100,11 +96,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Per-display video overrides sent from Electron.
     var perDisplayVideo: [UInt32: String] = [:]
 
-    // The display whose AVPlayer is the audio + timing master.
-    // All other windows are always muted and seek to match this player on connect.
-    // Set to the lowest display ID present (stable across reconnects for the
-    // same physical display).
-    var masterDisplayID: UInt32 = 0
+    // Global mute state — toggled via "set-muted" command
+    var isMuted = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -121,16 +114,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         send(OutgoingMessage(type: "ready", message: "mac-helper running"))
     }
 
-    // ── Master display selection ──────────────────────────────────────────────
-
-    /// Pick the lowest CGDirectDisplayID among connected displays as master.
-    /// Using the lowest ID keeps the same physical screen as master even when
-    /// an external screen is added or removed.
-    func electMaster() {
-        let ids = windows.keys
-        masterDisplayID = ids.min() ?? 0
-    }
-
     // ── Display management ────────────────────────────────────────────────────
 
     @objc func screensDidChange() {
@@ -143,9 +126,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             send(OutgoingMessage(type: "display-removed", displayId: Int(did)))
         }
 
-        // Re-elect master in case the old master display was removed
-        electMaster()
-
         // Create windows for newly-connected displays
         for screen in NSScreen.screens {
             let did = displayID(for: screen)
@@ -153,26 +133,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let win = WallpaperWindow(screen: screen)
                 windows[did] = win
 
-                // Re-elect: the new display might become master if its ID is lowest
-                electMaster()
-
                 let videoPath = perDisplayVideo[did] ?? initialVideoPath
                 if !videoPath.isEmpty {
-                    let isMaster = (did == masterDisplayID)
-                    // Seek new window to where the master player currently is
-                    // so video stays visually in sync across displays.
-                    let syncTime = masterWindow()?.currentTime()
-                    win.play(videoPath: videoPath, fitMode: initialFitMode,
-                             speed: initialSpeed,
-                             muted: isMaster ? initialMuted : true,
-                             syncTo: syncTime)
+                    win.play(videoPath: videoPath, fitMode: initialFitMode, speed: initialSpeed)
                 }
                 send(OutgoingMessage(type: "display-added", displayId: Int(did)))
             }
         }
-
-        // Re-apply master/secondary mute assignment after any topology change
-        applyMuteRoles()
     }
 
     func rebuildWindows() {
@@ -183,44 +150,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let win = WallpaperWindow(screen: screen)
             windows[did] = win
         }
-        electMaster()
         if !initialVideoPath.isEmpty { playAll() }
     }
 
     // ── Video helpers ─────────────────────────────────────────────────────────
 
-    func masterWindow() -> WallpaperWindow? {
-        return windows[masterDisplayID]
-    }
-
     func videoPath(for displayID: UInt32) -> String {
         return perDisplayVideo[displayID] ?? initialVideoPath
     }
 
-    /// Play all windows, syncing secondaries to the master's current time.
     func playAll() {
-        // Play master first so it has a currentTime to sync to
-        if let master = masterWindow() {
-            let vp = videoPath(for: masterDisplayID)
-            if !vp.isEmpty {
-                master.play(videoPath: vp, fitMode: initialFitMode,
-                            speed: initialSpeed, muted: initialMuted)
-            }
-        }
-        for (did, win) in windows where did != masterDisplayID {
+        for (did, win) in windows {
             let vp = videoPath(for: did)
             if !vp.isEmpty {
-                let syncTime = masterWindow()?.currentTime()
-                win.play(videoPath: vp, fitMode: initialFitMode,
-                         speed: initialSpeed, muted: true, syncTo: syncTime)
+                win.play(videoPath: vp, fitMode: initialFitMode, speed: initialSpeed, muted: isMuted)
             }
-        }
-    }
-
-    /// After a topology change, ensure only the master plays audio.
-    func applyMuteRoles() {
-        for (did, win) in windows {
-            win.setMuted(did == masterDisplayID ? initialMuted : true)
         }
     }
 
@@ -234,16 +178,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             initialVideoPath = vp
             if let fm = msg.fitMode { initialFitMode = fm }
             if let sp = msg.speed   { initialSpeed = sp }
+            if let m  = msg.muted   { isMuted = m }
             perDisplayVideo.removeAll()
-            // Play master first, then sync secondaries
-            if let master = masterWindow() {
-                master.play(videoPath: vp, fitMode: initialFitMode,
-                            speed: initialSpeed, muted: initialMuted)
-            }
-            for (did, win) in windows where did != masterDisplayID {
-                let syncTime = masterWindow()?.currentTime()
-                win.play(videoPath: vp, fitMode: initialFitMode,
-                         speed: initialSpeed, muted: true, syncTo: syncTime)
+            for (_, win) in windows {
+                win.play(videoPath: vp, fitMode: initialFitMode, speed: initialSpeed, muted: isMuted)
             }
 
         case "set-display-video":
@@ -257,23 +195,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if let fm = msg.fitMode { initialFitMode = fm }
             if let sp = msg.speed   { initialSpeed = sp }
             if let win = windows[did] {
-                let isMaster = (did == masterDisplayID)
-                let syncTime = isMaster ? nil : masterWindow()?.currentTime()
-                win.play(videoPath: vp, fitMode: initialFitMode,
-                         speed: initialSpeed,
-                         muted: isMaster ? initialMuted : true,
-                         syncTo: syncTime)
+                win.play(videoPath: vp, fitMode: initialFitMode, speed: initialSpeed, muted: isMuted)
             }
 
-        case "set-mute":
-            let mu = msg.muted ?? false
-            initialMuted = mu  // remember so new displays / set-video also picks it up
-            // Only the master window honours the mute toggle; secondaries stay muted
-            masterWindow()?.setMuted(mu)
-
-        case "set-volume":
-            // Volume control not supported — no-op
-            break
+        case "set-muted":
+            if let m = msg.muted { isMuted = m }
+            for (_, win) in windows { win.setMuted(isMuted) }
 
         case "pause":
             for (_, win) in windows { win.pause() }
@@ -348,13 +275,7 @@ class WallpaperWindow: NSWindow {
         self.makeKeyAndOrderFront(nil)
     }
 
-    /// Play (or swap) a video.
-    /// - Parameters:
-    ///   - syncTo: If non-nil, seek to this CMTime before starting so the
-    ///             display stays in sync with the master window's playhead.
-    ///             Pass nil for the master window itself.
-    func play(videoPath: String, fitMode: String, speed: Double,
-              muted: Bool = true, syncTo: CMTime? = nil) {
+    func play(videoPath: String, fitMode: String, speed: Double, muted: Bool = false) {
         guard !videoPath.isEmpty else { return }
 
         let url: URL = videoPath.hasPrefix("file://")
@@ -380,12 +301,6 @@ class WallpaperWindow: NSWindow {
         }
 
         player?.isMuted = muted
-
-        // Seek to master's position before starting so all displays stay in sync.
-        if let t = syncTo, t.isValid, t.isNumeric {
-            player?.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
-        }
-
         player?.rate = Float(speed)
         player?.play()
 
@@ -396,13 +311,7 @@ class WallpaperWindow: NSWindow {
         }
     }
 
-    /// Current playhead position — used to sync secondary windows on connect.
-    func currentTime() -> CMTime? {
-        return player?.currentTime()
-    }
-
     func setMuted(_ muted: Bool) { player?.isMuted = muted }
-
     func pause()  { player?.pause() }
     func resume() { player?.play() }
 }

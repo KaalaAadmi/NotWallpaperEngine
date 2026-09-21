@@ -8,11 +8,11 @@
  * JSON on stdin/stdout.
  *
  * Multi-monitor strategy:
- *   • Default (mirrorToAll=true): the helper receives a single "set-video"
+ *   • Mirror mode (no perDisplay entries): the helper receives a single "set-video"
  *     command which fans out to every NSScreen automatically.
- *   • Per-display (mirrorToAll=false): after the global "set-video" the JS
- *     side sends one "set-display-video" per display that has an override,
- *     identified by its CGDirectDisplayID (Int).
+ *   • Per-display mode: after the global "set-video" the JS side sends one
+ *     "set-display-video" per display that has an override, identified by
+ *     its CGDirectDisplayID (Int).
  *
  * Display connect/disconnect:  the helper emits "display-added" /
  * "display-removed" JSON messages.  wallpaper-mac.js re-sends the
@@ -42,6 +42,7 @@ function getHelperPath () {
 let helperProcess = null
 let currentSettings = null  // last-applied { videoPath, settings, displays }
 let pendingRestart = false
+let _isMuted = false
 
 // ── Helper lifecycle ──────────────────────────────────────────────────────────
 
@@ -71,13 +72,11 @@ function spawnHelper (videoPath, settings) {
     helperProcess = null
   }
 
-  // Pass the live muted state so a display reconnect doesn't reset audio.
-  const muted = settings.muted !== false  // default true if not provided
   const args = [
     '--video',  videoPath,
     '--fit',    settings.fitMode || 'cover',
     '--speed',  String(settings.playbackSpeed || 1.0),
-    '--muted',  muted ? '1' : '0'
+    '--muted',  _isMuted ? '1' : '0'
   ]
 
   helperProcess = spawn(helperPath, args, { stdio: ['pipe', 'pipe', 'pipe'] })
@@ -127,13 +126,12 @@ function handleHelperMessage (msg) {
         const vp = videoForDisplay(display, s)
         if (vp) {
           sendToHelper({
-            type: 'set-display-video',
-            displayId: msg.displayId,
-            videoPath: vp,
-            fitMode: s.fitMode || 'cover',
-            speed: s.playbackSpeed || 1.0
-            // muted/volume omitted — audio always off
-          })
+              type: 'set-display-video',
+              displayId: msg.displayId,
+              videoPath: vp,
+              fitMode: s.fitMode || 'cover',
+              speed: s.playbackSpeed || 1.0
+            })
         }
       }
     }
@@ -145,9 +143,9 @@ function handleHelperMessage (msg) {
 /**
  * Returns the effective video path for a display object.
  * `display.nativeId` is the CGDirectDisplayID (set by index.js from screen.getAllDisplays()).
+ * Falls back to global videoPath when no per-display override is configured.
  */
 function videoForDisplay (display, settings) {
-  if (settings.mirrorToAll !== false) return settings.videoPath || ''
   const perDisplay = settings.perDisplay || {}
   // Try by Electron display id first, then by CGDirectDisplayID (nativeId)
   return perDisplay[String(display.id)] || perDisplay[String(display.nativeId)] || settings.videoPath || ''
@@ -155,10 +153,11 @@ function videoForDisplay (display, settings) {
 
 /**
  * Send per-display overrides to the already-running helper.
- * Only sends for displays that differ from the global videoPath.
+ * Only sends for displays that have an explicit per-display video that differs from the global.
  */
 function applyPerDisplayOverrides ({ settings, displays }) {
-  if (settings.mirrorToAll !== false) return  // nothing to do
+  const perDisplay = settings.perDisplay || {}
+  if (Object.keys(perDisplay).length === 0) return  // nothing to do — all mirrors
   for (const display of (displays || [])) {
     const vp = videoForDisplay(display, settings)
     if (vp && vp !== settings.videoPath && display.nativeId) {
@@ -210,6 +209,11 @@ async function start ({ videoPath, settings, displays }) {
 function pause ()  { sendToHelper({ type: 'pause' }) }
 function resume () { sendToHelper({ type: 'resume' }) }
 
+function setMuted (muted) {
+  _isMuted = muted
+  sendToHelper({ type: 'set-muted', muted })
+}
+
 function broadcast (cmd) { sendToHelper(cmd) }
 
 async function stop () {
@@ -226,4 +230,4 @@ async function stop () {
   helperProcess = null
 }
 
-module.exports = { start, pause, resume, stop, broadcast }
+module.exports = { start, pause, resume, stop, broadcast, setMuted }
