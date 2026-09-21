@@ -58,14 +58,20 @@ npm install
 
 ### Build native helpers (macOS)
 
-The Swift helper must be compiled before first run on macOS:
+The Swift helper and `.saver` bundle must be compiled before first run on macOS:
+
+```bash
+npm run build:native-mac   # compiles mac-helper + NotWPESaver.saver
+```
+
+Or individually:
 
 ```bash
 npm run build:mac-helper   # desktop wallpaper binary + HEVC encoder
 npm run build:mac-saver    # .saver bundle for idle screensaver
-# or both at once:
-npm run build:native-mac
 ```
+
+> **Note:** `npm run build:mac` runs `build:native-mac` automatically as a `prebuild` step, so you only need the above if you want to run in development (`npm start`) without packaging first.
 
 ### Run in development
 
@@ -76,7 +82,7 @@ npm start
 ### Package for distribution
 
 ```bash
-npm run build:mac     # macOS  → .dmg (arm64 + x64)
+npm run build:mac     # macOS  → .dmg (arm64 + x64) — also rebuilds native helpers automatically
 npm run build:win     # Windows → NSIS .exe installer
 npm run build:linux   # Linux  → .AppImage + .deb
 ```
@@ -218,13 +224,20 @@ NotWallpaperEngine/
 
 ## CI
 
-A GitHub Actions workflow (`.github/workflows/build-mac.yml`) builds a macOS DMG automatically on every push to `master`. The workflow:
+A GitHub Actions workflow (`.github/workflows/build-mac.yml`) builds and publishes a macOS DMG on version tag pushes (e.g. `v1.0.0`). The workflow:
 
 1. Installs Node.js dependencies
 2. Compiles the Swift `mac-helper` binary
 3. Builds the `NotWPESaver.saver` bundle
 4. Packages a DMG for both `arm64` and `x64` via `electron-builder`
-5. Uploads the `.dmg` files as workflow artifacts (retained 30 days)
+5. Publishes the `.dmg` files as assets on the GitHub Release (tag runs), or uploads as workflow artifacts (manual dispatch)
+
+**To publish a release:**
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 Code signing is disabled in CI. For a signed/notarized build, set `CSC_LINK` and `CSC_KEY_PASSWORD` as repository secrets and remove `CSC_IDENTITY_AUTO_DISCOVERY: 'false'`.
 
