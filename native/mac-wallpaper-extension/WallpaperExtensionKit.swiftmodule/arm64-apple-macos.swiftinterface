@@ -1,0 +1,178 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.3.3 effective-5.10 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+// swift-module-flags: -target arm64-apple-macos15.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -O -module-name WallpaperExtensionKit
+// Handcrafted stub from TBD symbol demangling (macOS 26 SDK).
+// Linked against /System/Library/PrivateFrameworks/WallpaperExtensionKit.framework
+
+import Foundation
+import ExtensionFoundation
+import CoreGraphics
+import QuartzCore
+import Swift
+import _Concurrency
+
+// MARK: – Supporting enums
+
+public enum WallpaperActivityState: Int, Codable, CustomStringConvertible, Equatable, Hashable, Sendable {
+  case inactive = 0
+  case active = 1
+  case background = 2
+  public var description: String { get }
+}
+
+public enum WallpaperPresentationMode: Int, Codable, CustomStringConvertible, Equatable, Hashable, Sendable {
+  case desktop = 0
+  case lockScreen = 1
+  case preview = 2
+  public var description: String { get }
+}
+
+public enum WallpaperSystemAppearance: Int, Codable, CustomStringConvertible, Equatable, Hashable, Sendable {
+  case light = 0
+  case dark = 1
+  public var description: String { get }
+}
+
+// MARK: – WallpaperDestination
+
+public struct WallpaperDestination: Codable, Equatable, Sendable {
+  public var size: CGSize
+  public var scaleFactor: CGFloat
+  public var directDisplayID: UInt32?
+  public init(size: CGSize, colorSpace: CGColorSpace, scaleFactor: CGFloat, directDisplayID: UInt32?)
+}
+
+// MARK: – WallpaperDescriptor
+
+public struct WallpaperDescriptor: Equatable, Sendable {
+  public var files: [Foundation.URL]
+  public var configuration: Foundation.Data
+  public init(files: [Foundation.URL], configuration: Foundation.Data, optionValues: (any Sendable)?)
+}
+
+// MARK: – Request types
+
+public struct WallpaperCreationRequest: Equatable, Sendable {
+  public var descriptor: WallpaperDescriptor
+  public var cacheDirectory: Foundation.URL?
+  public var destination: WallpaperDestination
+  public var isPreview: Swift.Bool
+  public var presentationMode: WallpaperPresentationMode
+  public var activityState: WallpaperActivityState
+  public var systemAppearance: WallpaperSystemAppearance
+  public var debugBackgrounds: Swift.Bool
+}
+
+public struct WallpaperUpdateRequest: Equatable, Sendable {
+  public var presentationMode: WallpaperPresentationMode
+  public var activityState: WallpaperActivityState
+  public var systemAppearance: WallpaperSystemAppearance
+  public var destination: WallpaperDestination
+  public var debugBackgrounds: Swift.Bool
+}
+
+// MARK: – WallpaperSnapshot
+
+public struct WallpaperSnapshot: Sendable {
+  public var surface: IOSurface
+  public init(surface: IOSurface)
+}
+
+public enum WallpaperSnapshotError: Swift.Error, Equatable, Hashable {
+  case unsupported
+}
+
+// MARK: – SecurityScopedURLAccessToken
+
+public struct SecurityScopedURLAccessToken: Sendable {}
+
+// MARK: – Wallpaper protocol
+
+public protocol Wallpaper: AnyObject, Sendable {
+  var layer: CALayer { get }
+  func update(request: WallpaperUpdateRequest) async
+  func snapshot() async throws -> WallpaperSnapshot
+  func invalidate()
+}
+
+extension Wallpaper {
+  public func invalidate() {}
+}
+
+// MARK: – WallpaperHostProxy protocol
+
+public protocol WallpaperHostProxy: AnyObject, Sendable {
+  func ping() async
+  func invalidateSnapshots() async throws
+  func requestReadOnlyAccess(to url: Foundation.URL) async throws -> SecurityScopedURLAccessToken
+}
+
+// MARK: – WallpaperExtension protocol
+
+public protocol WallpaperExtension: ExtensionFoundation.AppExtension {
+  func makeWallpaper(
+    request: WallpaperCreationRequest,
+    host: any WallpaperHostProxy
+  ) async throws -> any Wallpaper
+}
+
+// MARK: – Video & VideoWallpaperConfiguration
+
+public struct Video: Codable, Sendable {
+  public var url: Foundation.URL
+
+  public enum Orientation: Swift.String, Codable, Equatable, Hashable, Sendable {
+    case landscape
+    case portrait
+  }
+
+  public struct Variant: Codable, Sendable {
+    public var url: Foundation.URL
+    public var orientation: Video.Orientation?
+    public var systemAppearance: WallpaperSystemAppearance?
+    public init(url: Foundation.URL, orientation: Video.Orientation?, systemAppearance: WallpaperSystemAppearance?)
+  }
+
+  public struct Environment: Sendable {
+    public var orientation: Video.Orientation
+    public var systemAppearance: WallpaperSystemAppearance
+    public init(orientation: Video.Orientation, systemAppearance: WallpaperSystemAppearance)
+  }
+
+  public var `default`: Video.Variant { get }
+  public var allVariants: [Video.Variant] { get }
+  public var additionalVariants: [Video.Variant] { get }
+  public func match(against environment: Video.Environment) -> Video.Variant
+
+  public init(url: Foundation.URL)
+}
+
+public struct VideoWallpaperConfiguration: Codable, Sendable {
+  public var videos: [Video]
+  public init(videos: [Video])
+  public static func decode(_ data: Foundation.Data) throws -> VideoWallpaperConfiguration
+  public func encode() throws -> Foundation.Data
+}
+
+// MARK: – VideoWallpaper
+
+public final class VideoWallpaper: Wallpaper, @unchecked Sendable {
+  public var layer: CALayer { get }
+
+  public init(
+    request: WallpaperCreationRequest,
+    host: any WallpaperHostProxy,
+    shouldLoop: Swift.Bool
+  ) async throws
+
+  public init(
+    request: WallpaperCreationRequest,
+    host: any WallpaperHostProxy,
+    configuration: VideoWallpaperConfiguration,
+    shouldLoop: Swift.Bool
+  ) async throws
+
+  public func update(request: WallpaperUpdateRequest) async
+  public func snapshot() async throws -> WallpaperSnapshot
+  public func invalidate()
+}

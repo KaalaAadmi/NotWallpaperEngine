@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotWallpaperEngine Settings</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">🎬</span>
+        <span class="brand-name">NotWallpaperEngine</span>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-tab="wallpaper">Wallpaper</li>
+        <li class="nav-item mac-only" data-tab="lockscreen">Lock Screen</li>
+        <li class="nav-item" data-tab="screensaver">Screensaver</li>
+        <li class="nav-item" data-tab="performance">Performance</li>
+        <li class="nav-item" data-tab="monitors">Monitors</li>
+        <li class="nav-item" data-tab="hotkeys">Hotkeys</li>
+        <li class="nav-item" data-tab="general">General</li>
+        <li class="nav-item" data-tab="about">About</li>
+      </ul>
+    </nav>
+
+    <!-- Main content -->
+    <main class="content">
+
+      <!-- ── Wallpaper Tab ── -->
+      <section class="tab active" id="tab-wallpaper">
+        <h2>Desktop Wallpaper</h2>
+        <p class="subtitle">Choose a video to play as your live desktop wallpaper.</p>
+
+        <div class="video-picker-card" id="wallpaper-card">
+          <div class="video-preview" id="wallpaper-preview">
+            <span class="preview-placeholder">No video selected</span>
+          </div>
+          <div class="video-info">
+            <span class="video-filename" id="wallpaper-filename">—</span>
+            <button class="btn btn-primary" id="wallpaper-pick-btn">Choose Video…</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fit-mode">Fit Mode</label>
+          <select id="fit-mode">
+            <option value="cover">Cover (fill screen, crop edges)</option>
+            <option value="contain">Contain (letterbox)</option>
+            <option value="stretch">Stretch (distort to fill)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="playback-speed">Playback Speed: <span id="speed-label">1.0×</span></label>
+          <input type="range" id="playback-speed" min="0.5" max="2" step="0.25" value="1" />
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-wallpaper-btn">Apply Wallpaper</button>
+        </div>
+      </section>
+
+      <!-- ── Lock Screen Tab (macOS) ── -->
+      <section class="tab" id="tab-lockscreen">
+        <h2>Lock Screen Wallpaper</h2>
+        <p class="subtitle">
+          Replaces a macOS Aerial slot with your video so it plays on the <strong>lock / login screen</strong>.
+          Uses the same technique as <em>Wallpaper Sync</em> — no admin password needed.
+        </p>
+
+        <!-- Prerequisites check -->
+        <div class="info-box info-warn" id="lockscreen-prereq-box" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div>
+              <strong>Setup required:</strong>
+              <ul id="lockscreen-prereq-list" style="margin:6px 0 0 16px;padding:0"></ul>
+            </div>
+            <button class="btn btn-secondary" id="lockscreen-refresh-btn" style="flex-shrink:0;white-space:nowrap">↻ Refresh</button>
+          </div>
+          <details style="margin-top:8px">
+            <summary style="font-size:11px;color:var(--text-muted);cursor:pointer">Show diagnostics</summary>
+            <pre id="lockscreen-diagnostics" style="font-size:11px;margin:4px 0 0;white-space:pre-wrap;color:var(--text-muted)"></pre>
+          </details>
+        </div>
+
+        <div class="info-box" id="lockscreen-status-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <span id="lockscreen-status-text">Checking status…</span>
+            <button class="btn btn-secondary" id="lockscreen-refresh-btn-ok" style="flex-shrink:0;white-space:nowrap">↻ Refresh</button>
+          </div>
+        </div>
+
+        <div id="lockscreen-controls">
+          <div class="form-group toggle-group">
+            <div class="toggle-label">
+              <label>Enable live lock screen wallpaper</label>
+              <span class="hint">Converts your video to HEVC and replaces the active Aerial slot (no elevation needed).</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="lockscreen-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div id="lockscreen-active-info" class="platform-note" style="display:none">
+            ✅ Lock screen wallpaper is <strong>active</strong>. Your video plays on the lock screen.
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" id="lockscreen-apply-btn">Apply</button>
+            <button class="btn btn-danger" id="lockscreen-deactivate-btn" style="margin-left:8px">Remove</button>
+          </div>
+
+          <hr />
+
+          <h3 style="margin-bottom:4px;font-size:14px">Lock Now</h3>
+          <p class="hint" style="margin-bottom:10px">
+            Start the screensaver immediately — it requires a password to resume, giving you a video lock screen.
+            Assign a shortcut in the <strong>Hotkeys</strong> tab (<em>Lock Screen Now</em> row), or click the button below.
+            <br><small style="color:var(--text-muted)">⌘⌃Q is system-reserved and cannot be captured; use a different combo.</small>
+          </p>
+          <button class="btn btn-secondary" id="lockscreen-now-btn">🔒 Lock Screen Now</button>
+        </div>
+
+        <div class="platform-note" id="lockscreen-unsupported" style="display:none">
+          Lock screen wallpaper is only supported on macOS.
+        </div>
+      </section>
+
+      <!-- ── Screensaver Tab ── -->
+      <section class="tab" id="tab-screensaver">
+        <h2>Screensaver</h2>
+        <p class="subtitle">Set a video that starts after the configured idle period.</p>
+
+        <!-- Linux: missing xscreensaver / mpv warning (hidden on other platforms) -->
+        <div class="info-box info-warn" id="screensaver-prereq-box" style="display:none">
+          <strong>Missing dependencies:</strong>
+          <ul id="screensaver-prereq-list" style="margin:6px 0 0 16px;padding:0"></ul>
+        </div>
+
+        <div class="form-group toggle-group">
+          <label>Enable Screensaver</label>
+          <label class="toggle">
+            <input type="checkbox" id="screensaver-enabled" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div id="screensaver-options">
+          <div class="video-picker-card" id="screensaver-card">
+            <div class="video-preview" id="screensaver-preview">
+              <span class="preview-placeholder">No video selected</span>
+            </div>
+            <div class="video-info">
+              <span class="video-filename" id="screensaver-filename">—</span>
+              <button class="btn btn-primary" id="screensaver-pick-btn">Choose Video…</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="idle-timeout">Activate after <span id="timeout-label">5</span> minutes idle</label>
+            <input type="range" id="idle-timeout" min="1" max="60" step="1" value="5" />
+          </div>
+
+          <div class="form-group toggle-group">
+            <label>Require password on resume</label>
+            <label class="toggle">
+              <input type="checkbox" id="require-password" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="platform-note" id="screensaver-platform-note"></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-screensaver-btn">Save Screensaver Settings</button>
+        </div>
+      </section>
+
+      <!-- ── Performance Tab ── -->
+      <section class="tab" id="tab-performance">
+        <h2>Performance</h2>
+        <p class="subtitle">Control when the wallpaper automatically pauses.</p>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <label>Pause when on battery</label>
+            <span class="hint">Saves power on laptops</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="pause-on-battery" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <label>Pause when screen is locked</label>
+            <span class="hint">No point rendering to a locked screen</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="pause-on-lock" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <label>Pause when a fullscreen app is active</label>
+            <span class="hint">Games, presentations, videos</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="pause-on-fullscreen" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-performance-btn">Save Performance Settings</button>
+        </div>
+      </section>
+
+      <!-- ── Monitors Tab ── -->
+      <section class="tab" id="tab-monitors">
+        <h2>Monitors</h2>
+        <p class="subtitle">By default every connected display shows the same wallpaper. Turn off the toggle to assign different videos per display.</p>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <label>Mirror to all displays</label>
+            <span class="hint">When on, all screens play the same video. Newly connected displays are synced automatically.</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="mirror-all" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- per-display rows, hidden while mirroring -->
+        <div id="display-list"></div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-monitors-btn">Save Monitor Settings</button>
+        </div>
+      </section>
+
+      <!-- ── General Tab ── -->
+      <section class="tab" id="tab-general">
+        <h2>General</h2>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-label">
+            <label>Launch at login</label>
+            <span class="hint">Start NotWallpaperEngine when you log in</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="launch-at-login" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-general-btn">Save General Settings</button>
+        </div>
+      </section>
+
+      <!-- ── Hotkeys Tab ── -->
+      <section class="tab" id="tab-hotkeys">
+        <h2>Hotkeys</h2>
+        <p class="subtitle">Click any field then press your key combination to record it. Press <kbd>Esc</kbd> to cancel, <kbd>Backspace</kbd> to clear.</p>
+
+        <div class="hotkey-list">
+
+          <div class="hotkey-row">
+            <div class="hotkey-label">
+              <span>Pause / Resume wallpaper</span>
+            </div>
+            <div class="hotkey-input-wrap">
+              <input type="text" class="hotkey-input" id="hk-pauseResume" placeholder="Click to record…" spellcheck="false" />
+              <button class="btn btn-secondary hk-clear-btn" data-target="hk-pauseResume">✕</button>
+            </div>
+          </div>
+
+          <div class="hotkey-row">
+            <div class="hotkey-label">
+              <span>Mute / Unmute wallpaper</span>
+            </div>
+            <div class="hotkey-input-wrap">
+              <input type="text" class="hotkey-input" id="hk-muteUnmute" placeholder="Click to record…" spellcheck="false" />
+              <button class="btn btn-secondary hk-clear-btn" data-target="hk-muteUnmute">✕</button>
+            </div>
+          </div>
+
+          <div class="hotkey-row">
+            <div class="hotkey-label">
+              <span>Next wallpaper</span>
+              <span class="hint">Coming soon — playlist feature</span>
+            </div>
+            <div class="hotkey-input-wrap">
+              <input type="text" class="hotkey-input" id="hk-nextWallpaper" placeholder="Click to record…" spellcheck="false" />
+              <button class="btn btn-secondary hk-clear-btn" data-target="hk-nextWallpaper">✕</button>
+            </div>
+          </div>
+
+          <div class="hotkey-row mac-only">
+            <div class="hotkey-label">
+              <span>Lock Screen Now</span>
+              <span class="hint">Starts the screensaver immediately (password required on resume). ⌘⌃Q is reserved by macOS — use a different combo.</span>
+            </div>
+            <div class="hotkey-input-wrap">
+              <input type="text" class="hotkey-input" id="hk-lockScreen" placeholder="Click to record…" spellcheck="false" />
+              <button class="btn btn-secondary hk-clear-btn" data-target="hk-lockScreen">✕</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="platform-note">
+          Shortcuts are registered globally and fire even when other apps are focused.<br>
+          Leave a field blank to disable that shortcut. <code>CommandOrControl</code> maps to ⌘ on macOS and Ctrl on Windows/Linux.
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="apply-hotkeys-btn">Save Hotkeys</button>
+        </div>
+      </section>
+
+      <!-- ── About Tab ── -->
+      <section class="tab" id="tab-about">
+        <h2>About</h2>
+        <div class="about-logo">🎬</div>
+        <h3 class="about-name">NotWallpaperEngine</h3>
+        <p class="about-tagline"><em>"Legally distinct. Spiritually identical."</em></p>
+        <p class="about-version" id="about-version">Version 1.0.0</p>
+
+        <div class="about-links">
+          <a href="https://github.com/notwallpaperengine/notwallpaperengine" class="btn btn-secondary" id="github-link">GitHub</a>
+        </div>
+
+        <div class="about-section">
+          <h4>Platform</h4>
+          <p id="about-platform">—</p>
+        </div>
+
+        <div class="about-section">
+          <h4>License</h4>
+          <p>MIT License. Use it, fork it, improve it.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="ui.js"></script>
+</body>
+</html>

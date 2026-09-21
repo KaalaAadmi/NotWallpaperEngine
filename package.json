@@ -1,0 +1,46 @@
+{
+  "name": "not-wallpaper-engine",
+  "version": "1.0.0",
+  "description": "Legally distinct. Spiritually identical. A cross-platform live wallpaper app.",
+  "main": "main/index.js",
+  "scripts": {
+    "start": "unset ELECTRON_RUN_AS_NODE && node node_modules/electron/cli.js .",
+    "dev": "unset ELECTRON_RUN_AS_NODE && node node_modules/electron/cli.js . --dev",
+    "build:mac-helper": "cd native/mac-helper && swift build -c release",
+    "build:mac-saver": "bash native/mac-saver/build-saver.sh",
+    "build:native-mac": "npm run build:mac-helper && npm run build:mac-saver",
+    "prebuild:mac": "npm run build:native-mac",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --mac --win --linux",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "wallpaper",
+    "live-wallpaper",
+    "screensaver",
+    "electron",
+    "desktop"
+  ],
+  "author": "NotWallpaperEngine Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "optionalDependencies": {
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3",
+    "winreg": "^1.2.4"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "extends": "./electron-builder.yml"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
+  }
+}

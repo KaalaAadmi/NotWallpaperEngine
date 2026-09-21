@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Compiled output
+dist/
+
+# Electron-builder output
+release/
+
+# Native addon build artifacts
+# (wifi.node is compiled on CI via electron-rebuild, not committed)
+native/wifi/build/
+native/wifi/obj.target/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Local user settings (contains tokens — never commit)
+settings.json
+
+# Editor
+.vscode/
+.idea/

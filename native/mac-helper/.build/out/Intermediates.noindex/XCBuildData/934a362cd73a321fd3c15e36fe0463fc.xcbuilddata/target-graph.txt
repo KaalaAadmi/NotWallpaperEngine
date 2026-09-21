@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'AllExcludingTests' in project 'Aggregate'
+➜ Explicit dependency on target 'mac-helper-product' in project 'mac-helper'
+Target 'mac-helper-product' in project 'mac-helper' (no dependencies)

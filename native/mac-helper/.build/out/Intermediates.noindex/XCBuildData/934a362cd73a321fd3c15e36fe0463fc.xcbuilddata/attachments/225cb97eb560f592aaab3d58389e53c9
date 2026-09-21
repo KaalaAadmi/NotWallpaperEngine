@@ -1,0 +1,16 @@
+{
+  "" : {
+    "const-values" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary.swiftconstvalues",
+    "dependencies" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary.d",
+    "diagnostics" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary.dia",
+    "emit-module-dependencies" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary-emit-module.dia",
+    "pch" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/mac-helper-primary.swiftdeps"
+  },
+  "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Sources/main.swift" : {
+    "index-unit-output-path" : "/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/main.o",
+    "llvm-bc" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/main.bc",
+    "object" : "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/out/Intermediates.noindex/mac-helper.build/Release/mac-helper-p.build/Objects-normal/arm64/main.o"
+  }
+}

@@ -1,0 +1,66 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "mac-helper-arm64-apple-macosx-release.exe": ["<mac-helper-arm64-apple-macosx-release.exe>"]
+  "mac-helper-arm64-apple-macosx-release.module": ["<mac-helper-arm64-apple-macosx-release.module>"]
+  "main": ["<mac-helper-arm64-apple-macosx-release.exe>","<mac-helper-arm64-apple-macosx-release.module>"]
+  "test": ["<mac-helper-arm64-apple-macosx-release.exe>","<mac-helper-arm64-apple-macosx-release.module>"]
+default: "main"
+nodes:
+  "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Sources/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/main.swift.o"]
+    outputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper.product/Objects.LinkFileList"
+
+  "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Sources/main.swift"]
+    outputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/sources"]
+    description: "Write auxiliary file /Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/sources"
+
+  "/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+
+  "<mac-helper-arm64-apple-macosx-release.exe>":
+    tool: phony
+    inputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper"]
+    outputs: ["<mac-helper-arm64-apple-macosx-release.exe>"]
+
+  "<mac-helper-arm64-apple-macosx-release.module>":
+    tool: phony
+    inputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/main.swift.o","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/Modules/mac_helper.swiftmodule"]
+    outputs: ["<mac-helper-arm64-apple-macosx-release.module>"]
+
+  "C.mac-helper-arm64-apple-macosx-release.exe":
+    tool: shell
+    inputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/main.swift.o","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper.product/Objects.LinkFileList"]
+    outputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper"]
+    description: "Linking ./.build/arm64-apple-macosx/release/mac-helper"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release","-o","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper","-module-name","mac_helper","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-dead_strip","-Xlinker","-alias","-Xlinker","_mac_helper_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac-helper.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx13.0","-framework","AVFoundation","-framework","Cocoa","-framework","CoreMedia","-framework","CoreVideo","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.mac-helper-arm64-apple-macosx-release.module":
+    tool: shell
+    inputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Sources/main.swift","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/sources"]
+    outputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/main.swift.o","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/Modules/mac_helper.swiftmodule"]
+    description: "Compiling Swift Module 'mac_helper' (1 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","mac_helper","-emit-dependencies","-emit-module","-emit-module-path","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/Modules/mac_helper.swiftmodule","-output-file-map","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/output-file-map.json","-whole-module-optimization","-num-threads","18","-c","@/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/mac_helper.build/sources","-I","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/Modules","-target","arm64-apple-macosx13.0","-whole-module-optimization","-num-threads","18","-serialize-diagnostics","-O","-j18","-DSWIFT_PACKAGE","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/.build/arm64-apple-macosx/release/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","mac_helper_main","-swift-version","5","-framework","AVFoundation","-framework","Cocoa","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","mac_helper"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Sources/","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Package.swift","/Users/arnavbhattacharya/Documents/helpful-useless-stuff/NotWallpaperEngine/native/mac-helper/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

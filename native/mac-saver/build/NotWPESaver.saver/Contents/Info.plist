@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.notwallpaperengine.saver</string>
+    <key>CFBundleName</key>
+    <string>NotWPESaver</string>
+    <key>CFBundleDisplayName</key>
+    <string>NotWPE Screensaver</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleExecutable</key>
+    <string>NotWPESaver</string>
+    <key>NSPrincipalClass</key>
+    <string>NotWPESaver.NotWPESaverView</string>
+    <!-- Required for ScreenSaver framework -->
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <!-- macOS Ventura+: needed for screen recording / screensaver usage -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>NotWPE Screensaver needs to play your selected video on the screen saver.</string>
+</dict>
+</plist>
