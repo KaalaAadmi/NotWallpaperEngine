@@ -30,11 +30,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: NotWallpaperEngine
+        # working-directory: NotWallpaperEngine
 
       - name: Build Swift mac-helper
         run: swift build -c release
-        working-directory: NotWallpaperEngine/native/mac-helper
+        # working-directory: NotWallpaperEngine/native/mac-helper
 
       - name: Verify mac-helper binary
         run: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Build NotWPESaver.saver
         run: bash native/mac-saver/build-saver.sh
-        working-directory: NotWallpaperEngine
+        # working-directory: NotWallpaperEngine
 
       - name: Verify NotWPESaver.saver
         run: |
@@ -63,7 +63,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --mac dmg --x64 --arm64 --publish never
-        working-directory: NotWallpaperEngine
+        # working-directory: NotWallpaperEngine
 
       - name: Upload DMG artifacts
         uses: actions/upload-artifact@v7
