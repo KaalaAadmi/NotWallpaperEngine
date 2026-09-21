@@ -6,6 +6,7 @@ dist/
 
 # Electron-builder output
 release/
+build/
 
 # Native addon build artifacts
 # (wifi.node is compiled on CI via electron-rebuild, not committed)
