@@ -35,9 +35,7 @@ jobs:
       - name: Build Swift mac-helper
         run: |
           swift build -c release
-          BIN_SRC=$(swift build -c release --show-bin-path)/mac-helper
-          mkdir -p .build/release
-          cp "$BIN_SRC" .build/release/mac-helper
+          cp "$(swift build -c release --show-bin-path)/mac-helper" .build/release/mac-helper
           echo "✅ mac-helper: $(ls -lh .build/release/mac-helper)"
         working-directory: native/mac-helper
 
