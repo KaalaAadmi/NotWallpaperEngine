@@ -1,10 +1,11 @@
 name: Build macOS
 
-# Fires on every push to master and on manual dispatch.
+# Fires on version tags (e.g. v1.0.0) to produce a GitHub Release with DMG assets.
+# Also fires on manual dispatch for a dry-run (publish: never, artifact upload only).
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -20,17 +21,14 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-          # cache: npm
-          # cache-dependency-path: NotWallpaperEngine/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        # working-directory: NotWallpaperEngine
 
       - name: Build Swift mac-helper
         run: |
@@ -42,27 +40,27 @@ jobs:
 
       - name: Build NotWPESaver.saver
         run: bash native/mac-saver/build-saver.sh
-        # working-directory: NotWallpaperEngine
 
       - name: Verify NotWPESaver.saver
         run: |
           SAVER=native/mac-saver/build/NotWPESaver.saver
-          if [ ! -d "$SAVER" ]; then
-            echo "❌ NotWPESaver.saver not found"
-            exit 1
-          fi
+          if [ ! -d "$SAVER" ]; then echo "❌ NotWPESaver.saver not found"; exit 1; fi
           echo "✅ NotWPESaver.saver found"
 
-      - name: Package DMG (arm64 + x64)
+      - name: Package DMG and publish to GitHub Release
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
-        # working-directory: NotWallpaperEngine
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            npx electron-builder --mac dmg --x64 --arm64 --publish always
+          else
+            npx electron-builder --mac dmg --x64 --arm64 --publish never
+          fi
 
-      - name: Upload DMG artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload DMG as workflow artifact (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
         with:
           name: NotWallpaperEngine-dmg-${{ github.sha }}
           path: build/*.dmg
-          # retention-days: 30
