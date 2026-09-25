@@ -58,7 +58,7 @@ function ensureExecutable (p) {
  * Spawn the Swift helper for the given global videoPath + settings.
  * After the helper is ready, sends per-display overrides when needed.
  */
-function spawnHelper (videoPath, settings) {
+async function spawnHelper (videoPath, settings) {
   const helperPath = getHelperPath()
   if (!isHelperAvailable()) {
     console.warn('[wallpaper-mac] mac-helper not found — run: npm run build:mac-helper')
@@ -67,9 +67,17 @@ function spawnHelper (videoPath, settings) {
 
   ensureExecutable(helperPath)
 
+  // Wait for the old process to fully exit before spawning a new one.
+  // SIGTERM on a Cocoa app is async — without waiting, the old AVPlayer
+  // keeps playing audio while the new one starts, stacking audio tracks.
   if (helperProcess) {
-    try { helperProcess.kill('SIGTERM') } catch (e) {}
+    const old = helperProcess
     helperProcess = null
+    await new Promise((resolve) => {
+      const t = setTimeout(() => { try { old.kill('SIGKILL') } catch (e) {} resolve() }, 2000)
+      old.once('exit', () => { clearTimeout(t); resolve() })
+      try { old.kill('SIGTERM') } catch (e) { resolve() }
+    })
   }
 
   const args = [
@@ -104,7 +112,7 @@ function spawnHelper (videoPath, settings) {
       setTimeout(() => {
         pendingRestart = false
         const { videoPath: vp, settings: s } = currentSettings
-        if (vp) spawnHelper(vp, s)
+        if (vp) spawnHelper(vp, s)  // async, fire-and-forget on crash restart
       }, 2000)
     }
   })

@@ -77,13 +77,20 @@ async function install (screensaverSettings) {
   await execAsync(`defaults write "${SHARED_DEFAULTS_DOMAIN}" fitMode "cover"`)
   await execAsync(`defaults write "${SHARED_DEFAULTS_DOMAIN}" screensaverMuted -bool true`)
 
-  // 2. Install .saver bundle
-  try {
-    await copySaverBundle(src, dest)
-    console.log('[screensaver-mac] Installed .saver to:', dest)
-  } catch (e) {
-    console.error('[screensaver-mac] Failed to install .saver:', e.message)
-    return
+  // 2. Install .saver bundle only when the source is newer than the installed copy.
+  //    Skipping the copy also skips the killall below, avoiding the macOS Automation
+  //    permission dialog on every launch when the bundle hasn't changed.
+  const needsCopy = !fs.existsSync(dest) ||
+    fs.statSync(src).mtimeMs > fs.statSync(dest).mtimeMs
+
+  if (needsCopy) {
+    try {
+      await copySaverBundle(src, dest)
+      console.log('[screensaver-mac] Installed .saver to:', dest)
+    } catch (e) {
+      console.error('[screensaver-mac] Failed to install .saver:', e.message)
+      return
+    }
   }
 
   // 3. Set as active screensaver (legacy idle timeout + password-on-resume)
@@ -103,10 +110,15 @@ async function install (screensaverSettings) {
     await execAsync(`defaults write com.apple.screensaver askForPassword -int 0`).catch(() => {})
   }
 
-  // 4. Clear the screensaver engine cache.
-  await execAsync('killall -9 legacyScreenSaver 2>/dev/null; killall -9 ScreenSaverEngine 2>/dev/null; true').catch(() => {})
-
-  console.log('[screensaver-mac] Screensaver configured and engine reloaded')
+  // 4. Reload screensaver engine — only needed when the bundle was (re-)copied.
+  //    killall targeting ScreenSaverEngine triggers the macOS Automation dialog;
+  //    skipping it on unchanged installs prevents the dialog on every app launch.
+  if (needsCopy) {
+    await execAsync('killall -9 legacyScreenSaver 2>/dev/null; killall -9 ScreenSaverEngine 2>/dev/null; true').catch(() => {})
+    console.log('[screensaver-mac] Screensaver bundle updated and engine reloaded')
+  } else {
+    console.log('[screensaver-mac] Screensaver config updated (bundle unchanged)')
+  }
 }
 
 async function uninstall () {

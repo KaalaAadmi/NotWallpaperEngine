@@ -47,6 +47,7 @@ const schema = {
     type: 'object',
     properties: {
       pauseResume:   { type: 'string', default: '' },
+      muteUnmute:    { type: 'string', default: '' },
       nextWallpaper: { type: 'string', default: '' },
       lockScreen:    { type: 'string', default: '' }
     },
@@ -141,6 +142,7 @@ function getHotkeys () {
   const s = getStore()
   return {
     pauseResume:   s.get('hotkeys.pauseResume', ''),
+    muteUnmute:    s.get('hotkeys.muteUnmute', ''),
     nextWallpaper: s.get('hotkeys.nextWallpaper', ''),
     lockScreen:    s.get('hotkeys.lockScreen', '')
   }

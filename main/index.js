@@ -104,6 +104,7 @@ app.whenReady().then(async () => {
   // Register global hotkeys
   hotkeys.init({
     pauseResume:   () => { if (isPaused) resumeWallpaper(); else pauseWallpaper() },
+    muteUnmute:    () => { if (isMuted) unmuteWallpaper(); else muteWallpaper() },
     nextWallpaper: () => {}, // placeholder for future playlist feature
     // Start screensaver immediately — functionally equivalent to locking the
     // screen since the screensaver requires a password on resume.
@@ -185,6 +186,11 @@ function updateTrayMenu () {
       label: isPaused ? 'Resume Wallpaper' : 'Pause Wallpaper',
       enabled: hasWallpaper,
       click: () => { if (isPaused) resumeWallpaper(); else pauseWallpaper() }
+    },
+    {
+      label: isMuted ? 'Unmute Wallpaper' : 'Mute Wallpaper',
+      enabled: hasWallpaper,
+      click: () => { if (isMuted) unmuteWallpaper(); else muteWallpaper() }
     },
     { type: 'separator' },
     {

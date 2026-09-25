@@ -22,6 +22,7 @@ const { globalShortcut, app } = require('electron')
 // Callbacks injected by index.js
 let _actions = {
   pauseResume:   () => {},
+  muteUnmute:    () => {},
   nextWallpaper: () => {},
   lockScreen:    () => {}
 }

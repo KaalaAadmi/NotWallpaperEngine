@@ -56,36 +56,38 @@ A cross-platform live wallpaper app built with Electron. Set any local video as 
 npm install
 ```
 
-### Build native helpers (macOS)
+### Build and run (all platforms)
 
-The Swift helper and `.saver` bundle must be compiled before first run on macOS:
-
-```bash
-npm run build:native-mac   # compiles mac-helper + NotWPESaver.saver
-```
-
-Or individually:
+**macOS**
 
 ```bash
-npm run build:mac-helper   # desktop wallpaper binary + HEVC encoder
-npm run build:mac-saver    # .saver bundle for idle screensaver
+npm run build:native-mac   # compile Swift mac-helper + NotWPESaver.saver (required before first run)
+npm start                  # run in development
+npm run build:mac          # package → build/NotWallpaperEngine-*.dmg (arm64 + x64)
+                           # (build:native-mac runs automatically as a prebuild step)
 ```
 
-> **Note:** `npm run build:mac` runs `build:native-mac` automatically as a `prebuild` step, so you only need the above if you want to run in development (`npm start`) without packaging first.
-
-### Run in development
+**Windows**
 
 ```bash
-npm start
+npm start                  # run in development (no native build step needed)
+npm run build:win          # package → build/NotWallpaperEngine Setup *.exe
 ```
 
-### Package for distribution
+**Linux**
 
 ```bash
-npm run build:mac     # macOS  → .dmg (arm64 + x64) — also rebuilds native helpers automatically
-npm run build:win     # Windows → NSIS .exe installer
-npm run build:linux   # Linux  → .AppImage + .deb
+npm start                  # run in development
+npm run build:linux        # package → build/*.AppImage and build/*.deb
 ```
+
+**All platforms at once**
+
+```bash
+npm run build:all          # produces macOS DMG + Windows NSIS + Linux AppImage/deb
+```
+
+> **macOS only:** Xcode 15+ must be installed before `build:native-mac`. On Windows and Linux no native compilation is needed — `ffi-napi` and `winreg` are installed automatically by `npm install` via `postinstall`.
 
 ---
 

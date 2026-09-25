@@ -461,7 +461,7 @@ function renderDisplayList () {
 
 // ── Hotkeys Tab ───────────────────────────────────────────────────────────────
 
-const HOTKEY_ACTIONS = ['pauseResume', 'nextWallpaper', 'lockScreen']
+const HOTKEY_ACTIONS = ['pauseResume', 'muteUnmute', 'nextWallpaper', 'lockScreen']
 
 // ── Key recorder ─────────────────────────────────────────────────────────────
 // Converts a browser KeyboardEvent into an Electron accelerator string.
